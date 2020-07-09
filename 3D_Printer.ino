@@ -510,25 +510,26 @@ const float xy_pos[480][2] = {
 93.764 , 101.139
 };
 
-double x_step_plus = 0;
-double y_step_plus = 0;
+volatile double x_step_plus = 0;
+volatile double y_step_plus = 0;
 
-volatile int toggle_x = 0;
-volatile int toggle_y = 0;
+int toggle_x = 0;
+int toggle_y = 0;
+
 volatile unsigned int step_count_x = 0;
 volatile unsigned int step_count_y = 0;
 volatile int step_toggle_x = 0;
 volatile int step_toggle_y = 0;
 volatile int limit_switch_x = 0;
 volatile int limit_switch_y = 0;
-volatile unsigned int max_count_x = 0;
-volatile unsigned int max_count_y = 0;
 volatile int on_off_x = 0;
 volatile int on_off_y = 0;
 volatile int move_on_x = 0;
 volatile int move_on_y = 0;
 volatile char reset_x = 0;
 volatile char reset_y = 0;
+volatile unsigned int max_count_x = 0;
+volatile unsigned int max_count_y = 0;
 
 unsigned int map_x = 0;
 unsigned int map_y = 0;
@@ -544,7 +545,9 @@ void loop()
 
 void setup()
 {
-  Serial.begin(9600);
+  //Serial.begin(9600);
+  //TIMSK0 = 0x00;
+  
   TCCR1A = 0x00;
   TCCR1B = 0x0A;
   TCCR1C = 0x0A;
@@ -575,56 +578,44 @@ void Float_Comma_move()
   int x_move;
   int y_move;
 
-    /*x_step_plus += (xy_pos[0][0] / 0.0125) + 0.5;
-    y_step_plus += (xy_pos[0][1] / 0.0125) + 0.5;
 
-    x_move = (int)x_step_plus;
-    y_move = (int)y_step_plus;
+  //리셋 없이 시작
+//  map_x = (int)((double)xy_pos[40][0] / 0.0125);
+//  map_y = (int)((double)xy_pos[40][1] / 0.0125);
+//  x_step_plus = -0.09;
+//  y_step_plus = 0.08;
+//  map_x = 10857;
+//  map_y = 7040;
 
-    x_step_plus -= x_move;
-    y_step_plus -= y_move;
-
-    Serial.println(x_move);
-    Serial.println(y_move);
-    Comma_move(x_move, y_move);
-    delay(200);*/
-  //11 ~ 50  ~49
-  //50 ~ 74
-  //74 ~ 114
-  //114 ~ 153
-  //153 ~ 177
-  //177 ~ 206
-
-//66.268 , 82.377,
-//66.527 , 82.217,
-//  5,301.44
+  
   for(int i=0;i<480;i++)
   {
     x_step_plus += (xy_pos[i][0] / 0.0125) - (double)map_x;
     y_step_plus += (xy_pos[i][1] / 0.0125) - (double)map_y;
-    if(i >= 48 && i <= 50){
-      Serial.println("log1");
-      Serial.println(x_step_plus);
-      Serial.println(y_step_plus);
-    }
-
+//    if(i >= 40 && i <= 40)
+//    {
+//      Serial.println("log1");
+//      Serial.println(x_step_plus);
+//      Serial.println(y_step_plus);
+//    }
     x_move = (int)x_step_plus;
     y_move = (int)y_step_plus;
 
     x_step_plus -= (double)x_move;
     y_step_plus -= (double)y_move;
-    if(i >= 48 && i <= 50){
-      Serial.println("log2");
-      Serial.println(x_step_plus);
-      Serial.println(y_step_plus);
-      
-      Serial.println("log3");
-      Serial.println(x_move);
-      Serial.println(y_move);
-
-    }
+//    if(i >= 40 && i <= 40)
+//    {
+//      Serial.println("log2");
+//      Serial.println(x_step_plus);
+//      Serial.println(y_step_plus);
+//    }
     Comma_move(x_move, y_move);
-    delay(200);
+//  if(i >= 40 && i <= 40)
+//    {
+//      Serial.println("log3");
+//      Serial.println(map_x);
+//      Serial.println(map_y);
+//    }
   }
 }
 double ANGLE(int x){
@@ -669,7 +660,13 @@ void Comma_move(int x,int y)
   }
   X_move(move_x, x_delay, move_dir_x);
   Y_move(move_y, y_delay, move_dir_y);
-  while(on_off_x == 1 || on_off_y == 1);
+  //while(on_off_x == 1 || on_off_y == 1);
+  while(1){
+    //delayMicroseconds(20);
+    if(on_off_x == 0 && on_off_y == 0){
+      break;
+    }
+  }
 }
 void X_move(int max, int speed, char direction)
 {
@@ -740,11 +737,9 @@ void Defalut_reset()
 {
   X_reset();
   Y_reset();
-  delay(1000);
   X_move(30 * 80, 400, DIR_RIGHT);
   Y_move(30 * 80, 400, DIR_DOWN);  
   while(on_off_x == 1 || on_off_y == 1);
-  delay(1000);
 }
 
 
