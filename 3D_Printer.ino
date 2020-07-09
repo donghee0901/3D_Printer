@@ -534,31 +534,12 @@ volatile unsigned int max_count_y = 0;
 unsigned int map_x = 0;
 unsigned int map_y = 0;
 
-const double SPEED = 400;
-
-  int x = 100, y = 50;
-  double xy = 1/(cos(atan(y/x)));
-  int delayX = (int)(((1/(cos(atan2(y,x)))) * SPEED)+0.5);
-  int delayY = (int)(((1/(sin(atan2(y,x)))) * SPEED)+0.5);
 void loop()
 {
-  //100,0
-  //100,50
-  //0,0
-  
   ////////////////////////////////////////////////////////////////////
-//  Defalut_reset();
-//  Float_Comma_move();
-//  while(1);
-  X_move(x * 80, SPEED, DIR_RIGHT);
-  while(on_off_x == 1);
-  Y_move(y * 80, SPEED, DIR_DOWN);
-  while(on_off_y == 1);
-  Serial.println(delayX);
-  Serial.println(delayY);
-  X_move(x * 80, delayX, DIR_LEFT);
-  Y_move(y * 80, delayY, DIR_UP);
-  while(on_off_x == 1 || on_off_y == 1);
+  Defalut_reset();
+  Float_Comma_move();
+  while(1);
   ////////////////////////////////////////////////////////////////////
 }
 
@@ -606,7 +587,7 @@ void Float_Comma_move()
     x_step_plus -= (double)x_move;
     y_step_plus -= (double)y_move;
 
-    Comma_move(x_move, y_move);
+    Comma_move_plus_delay(x_move, y_move, 400);
   }
 }
 double ANGLE(int x){
@@ -690,8 +671,8 @@ void Comma_move_plus_delay(int x,int y,int base_delay)
   int y_delay = base_delay;
   if(move_x != 0 && move_y !=0)
   {
-    int x_delay = (int)(((1/(cos(atan2(y,x)))) * base_delay)+0.5);
-    int y_delay = (int)(((1/(sin(atan2(y,x)))) * base_delay)+0.5);
+    x_delay = (int)(((1/(cos(atan2(move_y,move_x)))) * base_delay)+0.5);
+    y_delay = (int)(((1/(sin(atan2(move_y,move_x)))) * base_delay)+0.5);
   }
   X_move(move_x, x_delay, move_dir_x);
   Y_move(move_y, y_delay, move_dir_y);
