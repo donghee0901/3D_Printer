@@ -682,8 +682,10 @@ void Y_move(int max, int speed, char direction)
 void X_reset()
 {
   reset_x = 1;
-  X_move(1000000, 400, DIR_LEFT);
-  while (on_off_x == 1);
+  do{
+    if(on_off_x == 0) X_move(100, 400, DIR_LEFT);
+  }while (on_off_x != 2);
+  on_off_x = 0;
   reset_x = 2;
   on_off_x = 0;
   X_move(3 * 80, 400, DIR_RIGHT);
@@ -694,8 +696,10 @@ void X_reset()
 void Y_reset()
 {
   reset_y = 1;
-  Y_move(1000000, 400, DIR_UP);
-  while (on_off_y == 1);
+  do{
+    if(on_off_y == 0) Y_move(100, 400, DIR_UP);
+  }while (on_off_y != 2);
+  on_off_y = 0;
   reset_y = 2;
   on_off_y = 0;
   Y_move(3 * 80, 400, DIR_DOWN);
@@ -742,7 +746,7 @@ ISR(TIMER1_COMPA_vect) {
       if(reset_x == 1){
         TIMSK1 = 0x00;
         step_count_x = 0;
-        on_off_x = 0;
+        on_off_x = 2;
       }
     }
   }
@@ -777,7 +781,7 @@ ISR(TIMER3_COMPA_vect) {
       if(reset_y == 1){
         TIMSK3 = 0x00;
         step_count_y = 0;
-        on_off_y = 0;
+        on_off_y = 2;
       }
     }
   }
