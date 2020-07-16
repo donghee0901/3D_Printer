@@ -330,7 +330,7 @@ const float xy_pos[911][2] = {
 { 135.24, 87.383, }, { 130.026, 82.169, }, { 131.044, 82.169, },
 { 135.332, 86.457, }, { 135.325, 86.233, }, { 135.3, 85.968, },
 { 135.259, 85.704, }, { 135.202, 85.443, }, { 135.149, 85.255, },
-{ 132.244, 82.351, }
+{ 132.244, 82.351, },
 };
 const float speeds[911] = {
 667,667,667,667,
@@ -726,7 +726,7 @@ void Float_Comma_move()
     x_step_plus -= (double)x_move;
     y_step_plus -= (double)y_move;
 
-    Comma_move_plus_delay(x_move, y_move, speeds[i]);
+    Comma_move_plus_delay(x_move, y_move, 800);
   }
 }
 double ANGLE(int x){
@@ -810,8 +810,8 @@ void Comma_move_plus_delay(int x,int y,int base_delay)
   int y_delay = base_delay;
   if(move_x != 0 && move_y !=0)
   {
-    x_delay = (int)(((1/(cos(atan2(move_y,move_x)))) * base_delay)+0.5);
-    y_delay = (int)(((1/(sin(atan2(move_y,move_x)))) * base_delay)+0.5);
+    x_delay = (int)(((1/(cos(atan2(move_y,move_x)))) * base_delay));
+    y_delay = (int)(((1/(sin(atan2(move_y,move_x)))) * base_delay));
   }
   X_move(move_x, x_delay, move_dir_x);
   Y_move(move_y, y_delay, move_dir_y);
