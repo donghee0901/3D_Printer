@@ -1007,9 +1007,9 @@
 #define DIR_DOWN  3
 #define DIR_RIGHT 4
 
-double x_location = 0;
-double y_location = 0;
-double z_location = 0;
+int x_location = 0;
+int y_location = 0;
+int z_location = 0;
 
 double save_x_float_step = 0;
 double save_y_float_step = 0;
@@ -1038,6 +1038,7 @@ volatile int z_step_count_max = 0;
 
 void setup()
 {
+  Serial.begin(9600);
   TCCR1A = 0x00;
   TCCR1B = 0x0A;
   TCCR1C = 0x0A;
@@ -1056,33 +1057,78 @@ void setup()
   DDRD |= X_STEP_PIN | XYEENABLE_PIN;
 
   DDRC &= ~(X_STOP_PIN | Y_STOP_PIN | Z_STOP_PIN);
-
-  Z_move(1000, DIR_UP, 800);
 }
+
+int arr[3][2] = {{0, 0}, {2, 0}, {1, 2}};
+int count = 0;
 
 void loop()
 {
-
+  if (isDead == 0 && (Comma_move(arr[count][0], arr[count][1], 400) == true)) {
+    count++;
+    if (count == 3)count = 0;
+  }
 }
 
-void Comma_move(double x_move_location, double y_move_location, int base_speed)
+bool Comma_move(double x_move_location, double y_move_location, int base_speed)
 {
-  double x_move_location_step = x_move_location / 0.0125;
-  double y_move_location_step = y_move_location / 0.0125;
+  if (isDead == 1 || TIMSK1 != 0x00 || TIMSK3 != 0x00) {
+    return false;
+  }
 
-  double x_move_step = x_move_location_step - x_location;
-  double y_move_step = y_move_location_step - y_location;
-  
-  if()
+  double x_move_location_step = save_x_float_step + (x_move_location / 0.0125);
+  double y_move_location_step = save_y_float_step + (y_move_location / 0.0125);
+
+  int x_move_step = (int)x_move_location_step - x_location;
+  int y_move_step = (int)y_move_location_step - y_location;
+
+  save_x_float_step = (double)(x_move_location_step - (int)x_move_location_step);
+  save_y_float_step = (double)(y_move_location_step - (int)y_move_location_step);
+
+  char x_dir;
+  char y_dir;
+
+  int x_speed = base_speed;
+  int y_speed = base_speed;
+
+  if (x_move_step < 0) {
+    x_dir = DIR_LEFT;
+    x_move_step *= -1;
+  }
+  else {
+    x_dir = DIR_RIGHT;
+  }
+
+  if (y_move_step < 0) {
+    y_dir = DIR_DOWN;
+    y_move_step *= -1;
+  }
+  else {
+    y_dir = DIR_UP;
+  }
+
+  if (y_move_step != 0 && y_move_step != 0)
+  {
+    x_speed = (int)(((1 / (cos(atan2(y_move_step, y_move_step)))) * base_speed));
+    y_speed = (int)(((1 / (sin(atan2(y_move_step, y_move_step)))) * base_speed));
+  }
+
+  X_move(x_move_step, x_dir, x_speed);
+  Y_move(y_move_step, y_dir, y_speed);
+
+    Serial.println("으악 당했따");
+  return true;
 }
 
 void X_move(int max_step, int dir, int step_speed)
 {
   if (dir == DIR_LEFT) {
     digitalWrite_C(X_DIR_PIN, HIGH);
+    x_location += max_step;
   }
   if (dir == DIR_RIGHT) {
     digitalWrite_C(X_DIR_PIN, LOW);
+    x_location -= max_step;
   }
   x_step_count_max = max_step;
   OCR1A = step_speed;
@@ -1093,9 +1139,11 @@ void Y_move(int max_step, int dir, int step_speed)
 {
   if (dir == DIR_UP) {
     digitalWrite_C(Y_DIR_PIN, HIGH);
+    y_location += max_step;
   }
   else {
     digitalWrite_C(Y_DIR_PIN, LOW);
+    y_location -= max_step;
   }
   y_step_count_max = max_step;
   OCR3A = step_speed;
@@ -1127,13 +1175,15 @@ ISR(TIMER1_COMPA_vect) {
     digitalWrite_D(X_STEP_PIN, LOW);
     x_step_toggle = 0;
     x_step_count++;
+    
 
     if (digitalRead_C(X_STOP_PIN) == 1 && x_reset != 2) {
       TIMSK1 = 0x00;
+      TIMSK3 = 0x00;
       isDead = 1;
     }
 
-    if (x_step_count == x_step_count_max) {
+    if (x_step_count >= x_step_count_max) {
       TIMSK1 = 0x00;
     }
   }
@@ -1152,11 +1202,12 @@ ISR(TIMER3_COMPA_vect) {
       z_step_count++;
 
       if (digitalRead_C(Z_STOP_PIN) == 1 && z_reset != 2) {
+        TIMSK1 = 0x00;
         TIMSK3 = 0x00;
         isDead = 1;
       }
 
-      if (z_step_count == z_step_count_max) {
+      if (z_step_count >= z_step_count_max) {
         TIMSK3 = 0x00;
       }
     }
@@ -1172,11 +1223,12 @@ ISR(TIMER3_COMPA_vect) {
       y_step_count++;
 
       if (digitalRead_C(Y_STOP_PIN) == 1 && y_reset != 2) {
+        TIMSK1 = 0x00;
         TIMSK3 = 0x00;
         isDead = 1;
       }
 
-      if (y_step_count == y_step_count_max) {
+      if (y_step_count >= y_step_count_max) {
         TIMSK3 = 0x00;
       }
     }
