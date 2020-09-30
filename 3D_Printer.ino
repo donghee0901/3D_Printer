@@ -1175,6 +1175,9 @@ ISR(TIMER1_COMPA_vect) {
     digitalWrite_D(X_STEP_PIN, LOW);
     x_step_toggle = 0;
     x_step_count++;
+    Serial.print(x_step_count);
+    Serial.print(" / ");
+    Serial.print(x_step_count_max);
     
 
     if (digitalRead_C(X_STOP_PIN) == 1 && x_reset != 2) {
@@ -1228,7 +1231,7 @@ ISR(TIMER3_COMPA_vect) {
         isDead = 1;
       }
 
-      if (y_step_count >= y_step_count_max) {
+      if (y_step_count >a= y_step_count_max) {
         TIMSK3 = 0x00;
       }
     }
