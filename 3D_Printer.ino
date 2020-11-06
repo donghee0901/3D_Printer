@@ -992,6 +992,8 @@
 #define Z_STOP_PIN         0x10 //PC4
 #define Z_ENABLE_PIN       0x20 //PA5 0010 0000
 
+#define CONTROL_SIGNAL     0x10 //PA4
+
 #define digitalWrite_A(PIN, SWITCH) (SWITCH == 0 ? PORTA &= ~PIN : PORTA |= PIN)
 #define digitalWrite_B(PIN, SWITCH) (SWITCH == 0 ? PORTB &= ~PIN : PORTB |= PIN)
 #define digitalWrite_C(PIN, SWITCH) (SWITCH == 0 ? PORTC &= ~PIN : PORTC |= PIN)
@@ -1007,9 +1009,9 @@
 #define DIR_DOWN  3
 #define DIR_RIGHT 4
 
-int x_location = 0;
-int y_location = 0;
-int z_location = 0;
+volatile int x_location = 0;
+volatile int y_location = 0;
+volatile int z_location = 0;
 
 double save_x_float_step = 0;
 double save_y_float_step = 0;
@@ -1051,38 +1053,69 @@ void setup()
   TIMSK3 = 0x00;
   OCR3A = 400;
 
-  DDRA |= Z_ENABLE_PIN;
+  //  DDRA = 0x00;
+  //  DDRB = 0x00;
+  //  DDRC = 0x00;
+  //  DDRD = 0x00;
+
+  DDRA |= Z_ENABLE_PIN | CONTROL_SIGNAL;
   DDRB |= Z_STEP_PIN | Z_DIR_PIN;
   DDRC |= X_DIR_PIN | Y_STEP_PIN | Y_DIR_PIN;
   DDRD |= X_STEP_PIN | XYEENABLE_PIN;
 
   DDRC &= ~(X_STOP_PIN | Y_STOP_PIN | Z_STOP_PIN);
+
+  PORTC |= Z_STOP_PIN;
+  PORTA |= CONTROL_SIGNAL;
+  Z_move(20000, DIR_DOWN, 800);
 }
 
-int arr[3][2] = {{0, 0}, {2, 0}, {1, 2}};
+double arr[3][2] = {{0, 0}, {10, 0}, {0, 10}};
+int arra[3][2][3] = {{{800, DIR_RIGHT, 400}, {0, DIR_UP, 400}}, {{800, DIR_LEFT, 565}, {800, DIR_UP, 565}}, {{0, DIR_RIGHT, 400}, {800, DIR_DOWN, 400}}};
 int count = 0;
 
-void loop()
-{
-  if (isDead == 0 && (Comma_move((double)arr[count][0], (double)arr[count][1], 400) == true)) {
-    count++;
-    if (count == 3)count = 0;
-  }
+
+void loop() {
+  BLtouch(micros());
 }
 
-bool Comma_move(double x_move_location, double y_move_location, int base_speed)
+//void loop()
+//{
+//  Z_move(800, DIR_DOWN, 800);
+//  X_move(800, DIR_LEFT, 565);
+//  Y_move(800, DIR_UP, 565);
+//
+//  while(1);
+//  if (isDead == 0 && (Comma_move(arr[count][0], arr[count][1], 400) == 1)) {
+//    count++;
+//    //    Serial.print("count :");
+//    //    Serial.println(count);
+//    if (count == 3)count = 0;
+//  }
+
+//    X_move(arra[1][0][0],arra[1][0][1],arra[1][0][2]);
+//    Y_move(arra[1][1][0],arra[1][1][1],arra[1][1][2]);
+
+//  if (!(isDead == 1 || TIMSK1 != 0x00 || TIMSK3 != 0x00)) {
+//    X_move(arra[count][0][0],arra[count][0][1],arra[count][0][2]);
+//    Y_move(arra[count][1][0],arra[count][1][1],arra[count][1][2]);
+//    count++;
+//    if (count == 3)count = 0;
+//  }
+//}
+
+int Comma_move(double x_move_location, double y_move_location, unsigned int base_speed)
 {
   if (isDead == 1 || TIMSK1 != 0x00 || TIMSK3 != 0x00) {
-    return false;
+    return 0;
   }
-
-  Serial.printf("%d %d %d\n",x_move_location,y_move_location,base_speed);
 
   double x_move_location_step = save_x_float_step + (x_move_location / 0.0125);
   double y_move_location_step = save_y_float_step + (y_move_location / 0.0125);
 
-  int x_move_step = (int)x_move_location_step - x_location;
-  int y_move_step = (int)y_move_location_step - y_location;
+
+  int x_move_step = x_move_location_step - x_location;
+  int y_move_step = y_move_location_step - y_location;
 
   save_x_float_step = (double)(x_move_location_step - (int)x_move_location_step);
   save_y_float_step = (double)(y_move_location_step - (int)y_move_location_step);
@@ -1090,8 +1123,8 @@ bool Comma_move(double x_move_location, double y_move_location, int base_speed)
   char x_dir;
   char y_dir;
 
-  int x_speed = base_speed;
-  int y_speed = base_speed;
+  unsigned int x_speed = base_speed;
+  unsigned int y_speed = base_speed;
 
   if (x_move_step < 0) {
     x_dir = DIR_LEFT;
@@ -1109,36 +1142,71 @@ bool Comma_move(double x_move_location, double y_move_location, int base_speed)
     y_dir = DIR_UP;
   }
 
-  if (y_move_step != 0 && y_move_step != 0)
+  if (x_move_step != 0 && y_move_step != 0)
   {
-    x_speed = (int)(((1 / (cos(atan2(y_move_step, y_move_step)))) * base_speed));
-    y_speed = (int)(((1 / (sin(atan2(y_move_step, y_move_step)))) * base_speed));
+    x_speed = (int)(((1 / (cos(atan2(y_move_step, x_move_step)))) * base_speed));
+    y_speed = (int)(((1 / (sin(atan2(y_move_step, x_move_step)))) * base_speed));
   }
+
+  Serial.print("x_move_location : ");
+  Serial.println(x_move_location);
+  Serial.print("y_move_location : ");
+  Serial.println(y_move_location);
+
+
+  Serial.print("x_move_location_step : ");
+  Serial.println(x_move_location_step);
+  Serial.print("y_move_location_step : ");
+  Serial.println(y_move_location_step);
+
+  Serial.print("save_x_float_step : ");
+  Serial.println(save_x_float_step);
+  Serial.print("save_y_float_step : ");
+  Serial.println(save_y_float_step);
+
+  Serial.print("x_move_step : ");
+  Serial.println(x_move_step);
+  Serial.print("y_move_step : ");
+  Serial.println(y_move_step);
+
+  Serial.print("x_dir : ");
+  if (x_dir == DIR_LEFT)Serial.println("DIR_LEFT");
+  else if (x_dir == DIR_RIGHT)Serial.println("DIR_RIGHT");
+  Serial.print("y_dir : ");
+  if (y_dir == DIR_UP)Serial.println("DIR_UP");
+  else if (y_dir == DIR_DOWN)Serial.println("DIR_DOWN");
+
+  Serial.print("x_speed : ");
+  Serial.println(x_speed);
+  Serial.print("y_speed : ");
+  Serial.println(y_speed);
+  Serial.println();
 
   X_move(x_move_step, x_dir, x_speed);
   Y_move(y_move_step, y_dir, y_speed);
 
-  //Serial.println("으악 당했따");
-  return true;
+  return 1;
 }
 
-void X_move(int max_step, int dir, int step_speed)
+void X_move(int max_step, int dir, unsigned int step_speed)
 {
+  if (max_step == 0) return;
   if (dir == DIR_LEFT) {
     digitalWrite_C(X_DIR_PIN, HIGH);
-    x_location += max_step;
+    x_location -= max_step;
   }
   if (dir == DIR_RIGHT) {
     digitalWrite_C(X_DIR_PIN, LOW);
-    x_location -= max_step;
+    x_location += max_step;
   }
   x_step_count_max = max_step;
   OCR1A = step_speed;
   TIMSK1 = 0x02;
 }
 
-void Y_move(int max_step, int dir, int step_speed)
+void Y_move(int max_step, int dir, unsigned int step_speed)
 {
+  if (max_step == 0) return;
   if (dir == DIR_UP) {
     digitalWrite_C(Y_DIR_PIN, HIGH);
     y_location += max_step;
@@ -1153,8 +1221,9 @@ void Y_move(int max_step, int dir, int step_speed)
   TIMSK3 = 0x02;
 }
 
-void Z_move(int max_step, int dir, int step_speed)
+void Z_move(int max_step, int dir, unsigned int step_speed)
 {
+  if (max_step == 0) return;
   if (dir == DIR_UP) {
     digitalWrite_B(Z_DIR_PIN, HIGH);
   }
@@ -1177,10 +1246,6 @@ ISR(TIMER1_COMPA_vect) {
     digitalWrite_D(X_STEP_PIN, LOW);
     x_step_toggle = 0;
     x_step_count++;
-//    Serial.print(x_step_count);
-//    Serial.print(" / ");
-//    Serial.println(x_step_count_max);
-
 
     if (digitalRead_C(X_STOP_PIN) == 1 && x_reset != 2) {
       TIMSK1 = 0x00;
@@ -1206,11 +1271,10 @@ ISR(TIMER3_COMPA_vect) {
       z_step_toggle = 0;
       z_step_count++;
 
-      if (digitalRead_C(Z_STOP_PIN) == 1 && z_reset != 2) {
-        TIMSK1 = 0x00;
-        TIMSK3 = 0x00;
-        isDead = 1;
-      }
+      //      if (digitalRead_C(Z_STOP_PIN) == 1 && z_reset != 2) {
+      //        TIMSK3 = 0x00;
+      //        isDead = 1;
+      //      }
 
       if (z_step_count >= z_step_count_max) {
         TIMSK3 = 0x00;
@@ -1251,5 +1315,45 @@ ISR(TIMER2_COMPA_vect)
   else {
     e_step_toggle = 0;
     digitalWrite_D(E_STEP_PIN, LOW);
+  }
+}
+
+unsigned long p_micros = 0;
+unsigned long delays = 650;
+int toggle = 0;
+int isPull = 0;
+int pullCount = 0;
+
+void BLtouch(unsigned long c_micros)
+{
+  if ((c_micros - p_micros > delays && toggle == 0) || (c_micros - p_micros > (20000 - delays) && toggle == 1))
+  {
+    p_micros = c_micros;
+
+    if (isPull == 1)
+    {
+      pullCount++;
+    }
+
+    if (digitalRead_C(Z_STOP_PIN) == HIGH) {
+      if (isPull == 0) {
+        //        digitalWrite(13, HIGH);
+        isPull = 1;
+        pullCount = 0;
+        delays = 1475;
+        TIMSK3 = 0x00;
+        Z_move(20000, DIR_UP, 800);
+      }
+    }
+    else {
+      if (pullCount == 633) { // 조건 바꾸면 able
+        //        digitalWrite(13, LOW);
+        delays = 650;
+        isPull = 0;
+      }
+    }
+
+    digitalWrite_A(CONTROL_SIGNAL, toggle);
+    toggle = !toggle;
   }
 }
